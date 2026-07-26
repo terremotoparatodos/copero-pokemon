@@ -591,8 +591,8 @@ function avatarImg(a, cls){ return `<img class="${cls||''}" src="${a.sprite}" al
 /* ================= ONLINE: Salón de la Fama (Supabase) =================
    Para activar el modo online: crear un proyecto gratis en https://supabase.com,
    correr el SQL de configuración (ver instrucciones), y completar estos dos valores. */
-const SUPABASE_URL = 'TU_SUPABASE_URL_ACA';
-const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY_ACA';
+const SUPABASE_URL = 'https://gaccsgiobsjguauourvx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_4Za2O2b5OyO_7YEHvrRtNQ_8EiIyvOj';
 const SUPABASE_ENABLED = !SUPABASE_URL.includes('TU_SUPABASE');
 async function submitToLeaderboard(entry){
   if(!SUPABASE_ENABLED) return;
