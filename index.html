@@ -1176,8 +1176,8 @@ async function loadTypeLines(typeKeys){
   pools.flat().forEach(entry=>{ if(!combinedMap.has(entry.id)) combinedMap.set(entry.id, entry); });
   const combined = Array.from(combinedMap.values());
   const typeNameSet = new Set(combined.map(p=>p.name));
-  const sample = pickN(combined, Math.min(120, combined.length)); // pool grande para minimizar repeticiones de especies en toda la carrera
-  const lines = (await mapLimit(sample, 6, entry=>fetchLineFor(entry, typeNameSet))).filter(Boolean);
+  const sample = pickN(combined, Math.min(30, combined.length)); // pool amplio de sobra para una carrera completa (6-10 especies usadas en promedio), sin frenar la carga inicial
+  const lines = (await mapLimit(sample, 10, entry=>fetchLineFor(entry, typeNameSet))).filter(Boolean);
   const seen = new Set(); const uniqueLines = [];
   lines.forEach(line=>{ const key=line[0].id; if(!seen.has(key)){ seen.add(key); uniqueLines.push(line); } });
   return uniqueLines;
