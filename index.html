@@ -1242,17 +1242,36 @@ const SUPABASE_ANON_KEY = 'sb_publishable_4Za2O2b5OyO_7YEHvrRtNQ_8EiIyvOj';
 const SUPABASE_ENABLED = !SUPABASE_URL.includes('TU_SUPABASE');
 const sbClient = (SUPABASE_ENABLED && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+async function startRunSession(){
+  // Se llama al arrancar la carrera: le pide al servidor un token de sesión único.
+  // Sin este token, submit-run va a rechazar cualquier intento de subir un puntaje.
+  if(!SUPABASE_ENABLED) return null;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/start-run`, {
+      method:'POST',
+      headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.token || null;
+  } catch(e){ return null; }
+}
 async function submitToLeaderboard(entry){
+  // Ya NO inserta directo en la tabla (eso quedó bloqueado por RLS a propósito).
+  // Pasa por submit-run, que valida en el servidor: token de sesión válido y sin usar,
+  // tiempo mínimo transcurrido desde que arrancó la carrera, y rangos de stats coherentes.
   if(!SUPABASE_ENABLED) return;
   try{
-    if(currentUser) entry.user_id = currentUser.id; // ata la run a la cuenta, si hay sesión iniciada
-    await fetch(`${SUPABASE_URL}/rest/v1/leaderboard`, {
+    const token = await state.runTokenPromise;
+    if(!token) return; // no se pudo iniciar la sesión de carrera (sin conexión al arrancar, etc.)
+    if(currentUser) entry.user_id = currentUser.id;
+    entry.token = token;
+    await fetch(`${SUPABASE_URL}/functions/v1/submit-run`, {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${currentSession ? currentSession.access_token : SUPABASE_ANON_KEY}`,
-        'Prefer':'return=minimal',
       },
       body: JSON.stringify(entry),
     });
@@ -1885,6 +1904,7 @@ function startCareer(){
     capturedLog: [{line: setupData.starterLine, shiny: roster[0].shiny, temporada: 0}], // detalle para la Pokédex: qué línea, si salió shiny, en qué temporada
     lastBattleMonId: null, // para detectar uso consecutivo del mismo Pokémon (fatiga)
     rivalIdsUsed: [], // ids de Pokémon rivales ya enfrentados en esta partida, para que ninguno se repita
+    runTokenPromise: SUPABASE_ENABLED ? startRunSession() : Promise.resolve(null), // se pide ya, en paralelo con toda la carrera — para cuando termine, ya está listo
   };
 
   document.getElementById('screen-starter').classList.add('hidden');
