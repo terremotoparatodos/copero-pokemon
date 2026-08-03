@@ -526,7 +526,10 @@
         </div>
       </div>
       <div class="card setup-hof-panel">
-        <h3 class="section-lbl" style="margin-bottom:12px;">Highscores</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 class="section-lbl" style="margin:0;">Highscores</h3>
+          <button class="btn-ghost" id="btnSetupHofPeriod" style="padding:4px 10px;font-size:10px;" title="Click para cambiar el período">Hoy</button>
+        </div>
         <div id="setupHofList"></div>
       </div>
       <div class="card setup-hof-panel" id="setupRecentPanel">
@@ -1297,10 +1300,11 @@ async function submitToLeaderboard(entry){
     if(!res.ok) console.warn('submit-run devolvió', res.status, await res.text().catch(()=>''));
   } catch(e){ console.warn('No se pudo subir el puntaje (revisá CORS/deploy de submit-run)', e); }
 }
-async function fetchLeaderboard(typeKey){
+async function fetchLeaderboard(typeKey, sinceDate){
   if(!SUPABASE_ENABLED) return null;
   let url = `${SUPABASE_URL}/rest/v1/leaderboard?select=*&order=ovr.desc&limit=20`;
   if(typeKey) url += `&tipo=ilike.*${typeKey}*`;
+  if(sinceDate) url += `&created_at=gte.${sinceDate.toISOString()}`;
   const res = await fetch(url, {
     headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
     cache: 'no-store',
@@ -1770,17 +1774,32 @@ async function goToStarterScreen(){
     document.getElementById('starterError').classList.remove('hidden');
   }
 }
+const HOF_PERIOD_LABELS = {day:'Hoy', week:'Semana', month:'Mes', all:'Histórico'};
+const HOF_PERIOD_ORDER = ['day','week','month','all'];
+let setupHofPeriod = 'day'; // por defecto el highscore del día, para que la pantalla inicial se sienta viva
+function periodSinceDate(period){
+  if(period === 'all') return null;
+  const d = new Date();
+  if(period === 'day') d.setDate(d.getDate()-1);
+  else if(period === 'week') d.setDate(d.getDate()-7);
+  else if(period === 'month') d.setMonth(d.getMonth()-1);
+  return d;
+}
 async function loadSetupHighscores(){
   const el = document.getElementById('setupHofList');
+  const btn = document.getElementById('btnSetupHofPeriod');
+  if(btn) btn.textContent = HOF_PERIOD_LABELS[setupHofPeriod];
   if(!SUPABASE_ENABLED){
     el.innerHTML = `<div class="decision-desc" style="margin:0;">Todavía sin conectar online.</div>`;
     return;
   }
   el.innerHTML = `<div class="decision-desc" style="margin:0;">Cargando...</div>`;
   try{
-    const rows = await fetchLeaderboard(null);
+    const rows = await fetchLeaderboard(null, periodSinceDate(setupHofPeriod));
     if(!rows || !rows.length){
-      el.innerHTML = `<div class="decision-desc" style="margin:0;">Sé el primero en la tabla.</div>`;
+      el.innerHTML = setupHofPeriod === 'all'
+        ? `<div class="decision-desc" style="margin:0;">Sé el primero en la tabla.</div>`
+        : `<div class="decision-desc" style="margin:0;">Todavía nadie jugó en este período. Probá "Histórico" →</div>`;
       return;
     }
     el.innerHTML = rows.slice(0,5).map((r,i)=>{
@@ -1836,6 +1855,11 @@ async function loadSetupRecent(){
     el.innerHTML = `<div class="decision-desc" style="margin:0;">No se pudo cargar.</div>`;
   }
 }
+document.getElementById('btnSetupHofPeriod').addEventListener('click', ()=>{
+  const idx = HOF_PERIOD_ORDER.indexOf(setupHofPeriod);
+  setupHofPeriod = HOF_PERIOD_ORDER[(idx+1) % HOF_PERIOD_ORDER.length];
+  loadSetupHighscores();
+});
 loadSetupHighscores();
 loadSetupRecent();
 // Auto-refresh cada 30s mientras la persona esté parada en la pantalla inicial (no depende
