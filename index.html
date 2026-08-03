@@ -339,7 +339,9 @@
   .titles-list li:first-child{border-top:none;}
   .titles-list li img{width:16px;height:16px;object-fit:contain;flex-shrink:0;}
 
-  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:26px;font-family:var(--font-mono);}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:26px;font-family:var(--font-mono);line-height:1.8;}
+  footer a{text-decoration:none;transition:color .15s;}
+  footer a:hover{color:var(--gold);}
 
   /* avatar de entrenador */
   .avatar-chip{background:var(--panel-2);border:2px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:.15s;}
@@ -690,7 +692,7 @@
     </div>
   </div>
 
-  <footer>hecho para Terremoto para Todos · sprites vía PMDCollab/SpriteCollab · íconos vía WikiDex</footer>
+  <footer>hecho para Terremoto para Todos · sprites vía PMDCollab/SpriteCollab · íconos vía WikiDex<br>Sugerencias y bugs reportar a: <a href="https://twitter.com/gutiterremoto" target="_blank" rel="noopener" style="color:var(--muted);">@gutiterremoto</a></footer>
 </div>
 
 <script>
@@ -1297,6 +1299,7 @@ async function fetchLeaderboard(typeKey){
   if(typeKey) url += `&tipo=ilike.*${typeKey}*`;
   const res = await fetch(url, {
     headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    cache: 'no-store',
   });
   if(!res.ok) throw new Error('fetch failed');
   return res.json();
@@ -1308,6 +1311,7 @@ async function fetchRecentRuns(){
   const url = `${SUPABASE_URL}/rest/v1/leaderboard?select=*&order=created_at.desc&limit=20`;
   const res = await fetch(url, {
     headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    cache: 'no-store',
   });
   if(!res.ok) throw new Error('fetch failed');
   return res.json();
@@ -1830,6 +1834,14 @@ async function loadSetupRecent(){
 }
 loadSetupHighscores();
 loadSetupRecent();
+// Auto-refresh cada 30s mientras la persona esté parada en la pantalla inicial (no depende
+// de que navegue o reinicie una carrera para ver lo que va pasando en tiempo real).
+setInterval(()=>{
+  if(!document.getElementById('screen-setup').classList.contains('hidden')){
+    loadSetupHighscores();
+    loadSetupRecent();
+  }
+}, 30000);
 
 document.getElementById('btnNextToStarter').addEventListener('click', goToStarterScreen);
 document.getElementById('btnRetryType').addEventListener('click', goToStarterScreen);
