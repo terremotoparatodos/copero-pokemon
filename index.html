@@ -1267,10 +1267,13 @@ async function startRunSession(){
       method:'POST',
       headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
     });
-    if(!res.ok) return null;
+    if(!res.ok){
+      console.warn('start-run devolvió', res.status, await res.text().catch(()=>''));
+      return null;
+    }
     const data = await res.json();
     return data.token || null;
-  } catch(e){ return null; }
+  } catch(e){ console.warn('No se pudo iniciar la sesión de carrera (revisá CORS/deploy de start-run)', e); return null; }
 }
 async function submitToLeaderboard(entry){
   // Ya NO inserta directo en la tabla (eso quedó bloqueado por RLS a propósito).
@@ -1279,10 +1282,10 @@ async function submitToLeaderboard(entry){
   if(!SUPABASE_ENABLED) return;
   try{
     const token = await state.runTokenPromise;
-    if(!token) return; // no se pudo iniciar la sesión de carrera (sin conexión al arrancar, etc.)
+    if(!token){ console.warn('No hay token de sesión de carrera: no se sube el puntaje'); return; }
     if(currentUser) entry.user_id = currentUser.id;
     entry.token = token;
-    await fetch(`${SUPABASE_URL}/functions/v1/submit-run`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-run`, {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -1291,7 +1294,8 @@ async function submitToLeaderboard(entry){
       },
       body: JSON.stringify(entry),
     });
-  } catch(e){ console.warn('No se pudo subir el puntaje', e); }
+    if(!res.ok) console.warn('submit-run devolvió', res.status, await res.text().catch(()=>''));
+  } catch(e){ console.warn('No se pudo subir el puntaje (revisá CORS/deploy de submit-run)', e); }
 }
 async function fetchLeaderboard(typeKey){
   if(!SUPABASE_ENABLED) return null;
