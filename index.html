@@ -53,7 +53,8 @@
   .card{background:var(--panel);border:3px solid var(--line);border-radius:14px;box-shadow:0 4px 0 rgba(46,92,184,0.15);padding:22px;}
 
   .setup-grid{display:grid;grid-template-columns:1fr;gap:20px;max-width:640px;margin:0 auto;}
-  .setup-grid-with-hof{max-width:900px;grid-template-columns:1fr 230px;align-items:start;}
+  .setup-grid-with-hof{max-width:1140px;grid-template-columns:1fr 230px 230px;align-items:start;}
+  @media (max-width:900px){.setup-grid-with-hof{grid-template-columns:1fr 230px;}#setupRecentPanel{grid-column:1 / -1;}}
   @media (max-width:760px){.setup-grid-with-hof{grid-template-columns:1fr;}}
   .setup-hof-panel{display:flex;flex-direction:column;}
   .hof-vert-item{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:10px 6px;border-bottom:1px dashed var(--line);}
@@ -525,6 +526,10 @@
       <div class="card setup-hof-panel">
         <h3 class="section-lbl" style="margin-bottom:12px;">Highscores</h3>
         <div id="setupHofList"></div>
+      </div>
+      <div class="card setup-hof-panel" id="setupRecentPanel">
+        <h3 class="section-lbl" style="margin-bottom:12px;">Partidas recientes</h3>
+        <div id="setupRecentList"></div>
       </div>
     </div>
   </div>
@@ -1288,6 +1293,28 @@ async function fetchLeaderboard(typeKey){
   if(!res.ok) throw new Error('fetch failed');
   return res.json();
 }
+async function fetchRecentRuns(){
+  // A diferencia de fetchLeaderboard (ordena por OVR), este ordena por fecha:
+  // las últimas carreras subidas, sin importar qué tan bueno haya salido el resultado.
+  if(!SUPABASE_ENABLED) return null;
+  const url = `${SUPABASE_URL}/rest/v1/leaderboard?select=*&order=created_at.desc&limit=20`;
+  const res = await fetch(url, {
+    headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  if(!res.ok) throw new Error('fetch failed');
+  return res.json();
+}
+function timeAgo(dateStr){
+  if(!dateStr) return '';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const min = Math.floor(diffMs/60000);
+  if(min < 1) return 'recién';
+  if(min < 60) return `hace ${min} min`;
+  const hs = Math.floor(min/60);
+  if(hs < 24) return `hace ${hs}h`;
+  const dias = Math.floor(hs/24);
+  return `hace ${dias}d`;
+}
 async function fetchMyRuns(){
   // Todas las carreras que subiste con esta cuenta (no depende del dispositivo)
   if(!SUPABASE_ENABLED || !currentUser) return null;
@@ -1760,7 +1787,41 @@ async function loadSetupHighscores(){
     el.innerHTML = `<div class="decision-desc" style="margin:0;">No se pudo cargar.</div>`;
   }
 }
+async function loadSetupRecent(){
+  const el = document.getElementById('setupRecentList');
+  if(!SUPABASE_ENABLED){
+    el.innerHTML = `<div class="decision-desc" style="margin:0;">Todavía sin conectar online.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="decision-desc" style="margin:0;">Cargando...</div>`;
+  try{
+    const rows = await fetchRecentRuns();
+    if(!rows || !rows.length){
+      el.innerHTML = `<div class="decision-desc" style="margin:0;">Todavía no hay carreras subidas.</div>`;
+      return;
+    }
+    el.innerHTML = rows.slice(0,5).map(r=>{
+      const av = avatarById(r.avatar_id);
+      let team = [];
+      try{ team = JSON.parse(r.roster_json||'[]'); } catch(e){ team = []; }
+      const teamHtml = `<div class="hof-team" style="justify-content:center;">${team.slice(0,3).map(p=>{
+        const src = pmdSprite(p.id, p.shiny), fb = fallbackSprite(p.id, p.shiny);
+        return `<img class="${p.shiny?'shiny-ring':''}" src="${src}" data-fb="${fb}" ${IMG_ERR} alt="" style="width:20px;height:20px;">`;
+      }).join('')}</div>`;
+      return `<div class="hof-vert-item">
+        <div class="hof-vert-rank" style="font-size:11px;">${timeAgo(r.created_at)}</div>
+        <div class="id-avatar" style="width:28px;height:28px;">${avatarImg(av)}</div>
+        <div class="hof-vert-name">${(r.apellido||'').toUpperCase()}</div>
+        ${teamHtml}
+        <div class="hof-vert-ovr">${r.ovr} OVR</div>
+      </div>`;
+    }).join('');
+  } catch(e){
+    el.innerHTML = `<div class="decision-desc" style="margin:0;">No se pudo cargar.</div>`;
+  }
+}
 loadSetupHighscores();
+loadSetupRecent();
 
 document.getElementById('btnNextToStarter').addEventListener('click', goToStarterScreen);
 document.getElementById('btnRetryType').addEventListener('click', goToStarterScreen);
@@ -3616,6 +3677,7 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   document.querySelectorAll('#avatarGrid .avatar-chip').forEach((el,i)=>el.classList.toggle('sel', i===0));
   document.getElementById('btnNextToStarter').disabled = true;
   loadSetupHighscores();
+  loadSetupRecent();
 });
 document.getElementById('btnDownload').addEventListener('click', ()=>{
   const btn = document.getElementById('btnDownload');
