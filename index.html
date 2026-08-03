@@ -808,13 +808,21 @@ const TROPHY_ICONS = {
 /* ================= SPRITES: PMD Mystery Dungeon (con fallback) ================= */
 const SHINY_CHANCE = 0.01;
 const SHINY_CHANCE_LEGENDARY = 0.05;
-const PMD_BASE = 'https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait';
-const FALLBACK_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork';
+const PMD_BASE = 'https://cdn.jsdelivr.net/gh/PMDCollab/SpriteCollab@master/portrait';
+const FALLBACK_BASE = 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork';
 function pmdSprite(id, shiny){ return `${PMD_BASE}/${String(id).padStart(4,'0')}/${shiny?'Shiny':'Normal'}.png`; }
 function fallbackSprite(id, shiny){ return `${FALLBACK_BASE}/${shiny?'shiny/':''}${id}.png`; }
 function monSprite(p){ return pmdSprite(p.id, p.shiny); }
 function monFallback(p){ return fallbackSprite(p.id, p.shiny); }
-const IMG_ERR = `onerror="this.onerror=null;this.src=this.dataset.fb;"`;
+window.__imgFallback = function(img){
+  if(!img.dataset.fbUsed){
+    img.dataset.fbUsed = '1';
+    img.src = img.dataset.fb;
+  } else {
+    img.style.visibility = 'hidden'; // ya se intentaron las 2 fuentes: mejor un espacio vacío que el ícono roto
+  }
+};
+const IMG_ERR = `onerror="window.__imgFallback(this)"`;
 function imgTag(p, cls, extra){
   return `<img class="${cls||''}${p.shiny?' shiny-ring':''}" src="${monSprite(p)}" data-fb="${monFallback(p)}" ${IMG_ERR} alt="${p.name}" ${extra||''}>`;
 }
