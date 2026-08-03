@@ -353,15 +353,30 @@
   .avatar-chip.sel span{color:var(--gold);}
 
   /* salón de la fama */
-  .hof-row{display:grid;grid-template-columns:32px 1fr 100px 60px 60px 60px;gap:8px;align-items:center;padding:10px 12px;border-radius:8px;font-size:14.5px;border-bottom:1px solid var(--line);}
+  .hof-row{display:grid;grid-template-columns:32px 1fr 170px 60px 60px 60px;gap:8px;align-items:center;padding:10px 12px;border-radius:8px;font-size:14.5px;border-bottom:1px solid var(--line);}
   .hof-row.me{background:rgba(240,180,41,0.08);}
   .hof-rank{font-family:var(--font-display);font-size:16px;color:var(--muted);text-align:center;}
   .hof-name{display:flex;align-items:center;gap:8px;overflow:hidden;}
   .hof-name b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .hof-col{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:center;}
-  .hof-head{display:grid;grid-template-columns:32px 1fr 100px 60px 60px 60px;gap:8px;padding:6px 12px;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;}
+  .hof-head{display:grid;grid-template-columns:32px 1fr 170px 60px 60px 60px;gap:8px;padding:6px 12px;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;}
   .hof-team{display:flex;gap:2px;}
   .hof-team img{width:26px;height:26px;object-fit:contain;border-radius:4px;background:var(--panel-2);}
+  .hof-avatar-hover{position:relative;display:inline-block;cursor:default;}
+  .hof-avatar-hover .hof-tip{
+    visibility:hidden;opacity:0;position:absolute;top:110%;left:0;
+    background:#000;color:#fff;border-radius:10px;padding:10px 12px;width:216px;
+    font-family:var(--font-body);font-size:11px;line-height:1.4;z-index:60;
+    transition:.15s;text-align:left;box-shadow:0 6px 20px rgba(0,0,0,.4);
+    pointer-events:none;
+  }
+  .hof-avatar-hover:hover .hof-tip{visibility:visible;opacity:1;}
+  .hof-tip .ht-title{font-family:var(--font-display);font-size:16px;color:var(--gold);margin-bottom:2px;}
+  .hof-tip .ht-stats{font-family:var(--font-mono);font-size:10px;color:#cfd8e8;margin-bottom:6px;}
+  .hof-tip .ht-row{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px;}
+  .hof-tip .ht-row img{width:18px;height:18px;object-fit:contain;flex-shrink:0;}
+  .hof-liga-row{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;}
+  .hof-liga-row img{width:14px;height:14px;object-fit:contain;}
 
   /* ---- Pokédex ---- */
   .pokedex-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(86px,1fr));gap:10px;}
@@ -376,10 +391,19 @@
   .pokedex-card.missing{border-color:var(--line);opacity:.55;}
   .pokedex-card.missing img{filter:brightness(0) saturate(100%);opacity:.55;}
   .pokedex-card.missing .pd-name{color:var(--muted);}
-  .pokedex-region-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
-  .pokedex-region-header:first-child{margin-top:0;}
-  .pokedex-region-header .pr-name{font-family:var(--font-display);font-size:20px;color:var(--gold);}
-  .pokedex-region-header .pr-count{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+  .pokedex-grid.hide-missing .pokedex-card.missing{display:none;}
+  .pokedex-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed var(--line);}
+  .pokedex-nav .chip{padding:6px 10px;font-size:11px;}
+  .pokedex-region{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+  .pokedex-region-header{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:var(--panel-2);user-select:none;}
+  .pokedex-region-header .pr-caret{font-family:var(--font-mono);font-size:11px;color:var(--muted);transition:transform .15s;flex-shrink:0;}
+  .pokedex-region.open .pr-caret{transform:rotate(90deg);}
+  .pokedex-region-header .pr-name{font-family:var(--font-display);font-size:18px;color:var(--gold);flex-shrink:0;}
+  .pokedex-region-header .pr-bar{flex:1;height:6px;border-radius:4px;background:var(--line);opacity:.35;overflow:hidden;}
+  .pokedex-region-header .pr-bar-fill{height:100%;background:var(--gold);}
+  .pokedex-region-header .pr-count{font-family:var(--font-mono);font-size:11px;color:var(--muted);flex-shrink:0;}
+  .pokedex-region-body{display:none;padding:14px;}
+  .pokedex-region.open .pokedex-region-body{display:block;}
 
   /* ================= AJUSTES MOBILE ================= */
   /* Tablas con columnas fijas (timeline, HOF): en vez de aplastarse hasta ser ilegibles,
@@ -387,7 +411,7 @@
   .timeline-card{overflow-x:auto;}
   .timeline-head, .timeline-row{min-width:520px;}
   #hofList{overflow-x:auto;}
-  .hof-head, .hof-row{min-width:480px;}
+  .hof-head, .hof-row{min-width:560px;}
 
   /* Tooltips que dependían solo de :hover (no existe en touch): también se muestran al tocar/mantener. */
   .strip-mon:active .tip, .strip-comp:active .tip, .vitrina-trophy:active .tip{visibility:visible;opacity:1;}
@@ -495,7 +519,7 @@
       <div class="card">
         <h3 class="section-lbl">Definí tu identidad</h3>
         <label class="field">
-          <span class="name">Apellido del entrenador</span>
+          <span class="name">Nombre del entrenador</span>
           <input type="text" id="apellido" maxlength="16" placeholder="Ej: Guti">
         </label>
         <div class="field">
@@ -691,7 +715,8 @@
         <button class="btn-ghost" id="btnBackFromPokedex">← Volver</button>
       </div>
       <div id="pokedexStatus" class="decision-desc" style="margin:0 0 12px;">Cargando...</div>
-      <div class="pokedex-grid" id="pokedexGrid"></div>
+      <div class="pokedex-nav" id="pokedexNav"></div>
+      <div id="pokedexGrid"></div>
     </div>
   </div>
 
@@ -1252,6 +1277,32 @@ const AVATARS = [
 ];
 function avatarById(id){ return AVATARS.find(a=>a.id===id) || AVATARS[0]; }
 function avatarImg(a, cls){ return `<img class="${cls||''}" src="${a.sprite}" alt="${a.label}" style="width:100%;height:100%;object-fit:cover;image-rendering:pixelated;">`; }
+function runTooltipHtml(r){
+  let team = []; try{ team = JSON.parse(r.roster_json||'[]'); } catch(e){ team = []; }
+  let ligas = []; try{ ligas = JSON.parse(r.ligas_ganadas||'[]'); } catch(e){ ligas = []; }
+  const teamHtml = team.slice(0,6).map(p=>{
+    const src = pmdSprite(p.id, p.shiny), fb = fallbackSprite(p.id, p.shiny);
+    return `<img class="${p.shiny?'shiny-ring':''}" src="${src}" data-fb="${fb}" ${IMG_ERR} alt="">`;
+  }).join('');
+  const ligasHtml = ligas.map(region=>`<img src="${(TROPHY_ICONS.liga && TROPHY_ICONS.liga[region])||''}" title="Liga ${region}" alt="">`).join('');
+  const logrosBits = [];
+  if(r.mundial_titulos>0) logrosBits.push(`<img src="${TROPHY_ICONS.mundial}" title="Copa Mundial x${r.mundial_titulos}" alt="">`);
+  if(r.pokebolas_oro>0) logrosBits.push(`<img src="${TROPHY_ICONS.balon}" title="Balón de Oro x${r.pokebolas_oro}" alt="">`);
+  return `<div class="hof-tip">
+    <div class="ht-title">${(r.apellido||'').toUpperCase()}</div>
+    <div class="ht-stats">OVR ${r.ovr} · Fama ${r.fama} · Medallas ${r.medallas} · Batallas ${r.batallas}</div>
+    ${(logrosBits.length || ligasHtml) ? `<div class="ht-row">${logrosBits.join('')}${ligasHtml}</div>` : ''}
+    ${teamHtml ? `<div class="ht-row">${teamHtml}</div>` : ''}
+  </div>`;
+}
+function avatarWithTooltip(r, size){
+  const av = avatarById(r.avatar_id);
+  size = size || 28;
+  return `<span class="hof-avatar-hover">
+    <span class="id-avatar" style="width:${size}px;height:${size}px;display:inline-block;">${avatarImg(av)}</span>
+    ${runTooltipHtml(r)}
+  </span>`;
+}
 
 /* ================= ONLINE: Salón de la Fama (Supabase) =================
    Para activar el modo online: crear un proyecto gratis en https://supabase.com,
@@ -1812,7 +1863,7 @@ async function loadSetupHighscores(){
       }).join('')}</div>`;
       return `<div class="hof-vert-item">
         <div class="hof-vert-rank">${i+1}º</div>
-        <div class="id-avatar" style="width:28px;height:28px;">${avatarImg(av)}</div>
+        ${avatarWithTooltip(r, 28)}
         <div class="hof-vert-name">${(r.apellido||'').toUpperCase()}</div>
         ${teamHtml}
         <div class="hof-vert-ovr">${r.ovr} OVR</div>
@@ -1845,7 +1896,7 @@ async function loadSetupRecent(){
       }).join('')}</div>`;
       return `<div class="hof-vert-item">
         <div class="hof-vert-rank" style="font-size:11px;">${timeAgo(r.created_at)}</div>
-        <div class="id-avatar" style="width:28px;height:28px;">${avatarImg(av)}</div>
+        ${avatarWithTooltip(r, 28)}
         <div class="hof-vert-name">${(r.apellido||'').toUpperCase()}</div>
         ${teamHtml}
         <div class="hof-vert-ovr">${r.ovr} OVR</div>
@@ -3646,6 +3697,7 @@ function showSummary(){
     batallas: state.batallas,
     pokebolas_oro: state.pokebolasOro,
     mundial_titulos: state.mundialTitles,
+    ligas_ganadas: JSON.stringify(state.ligasGanadas),
     roster_json: JSON.stringify(state.roster.map(p=>({id:p.id, shiny:p.shiny}))),
   });
 
@@ -3776,16 +3828,20 @@ async function loadHof(typeKey){
     statusEl.textContent = '';
     listEl.innerHTML = `<div class="hof-head"><span>#</span><span>Entrenador</span><span>Equipo</span><span>OVR</span><span>Fama</span><span>Medallas</span></div>` +
       rows.map((r,i)=>{
-        const av = avatarById(r.avatar_id);
         let team = [];
         try{ team = JSON.parse(r.roster_json||'[]'); } catch(e){ team = []; }
-        const teamHtml = `<div class="hof-team">${team.slice(0,3).map(p=>{
+        let ligas = [];
+        try{ ligas = JSON.parse(r.ligas_ganadas||'[]'); } catch(e){ ligas = []; }
+        const teamHtml = `<div class="hof-team">${team.slice(0,6).map(p=>{
           const src = pmdSprite(p.id, p.shiny), fb = fallbackSprite(p.id, p.shiny);
           return `<img class="${p.shiny?'shiny-ring':''}" src="${src}" data-fb="${fb}" ${IMG_ERR} alt="">`;
         }).join('')}</div>`;
+        const ligasHtml = ligas.length
+          ? `<div class="hof-liga-row">${ligas.map(region=>`<img src="${(TROPHY_ICONS.liga&&TROPHY_ICONS.liga[region])||''}" title="Liga ${region}" alt="">`).join('')}</div>`
+          : '';
         return `<div class="hof-row">
           <div class="hof-rank">${i+1}</div>
-          <div class="hof-name"><div class="id-avatar" style="width:26px;height:26px;">${avatarImg(av)}</div><b>${(r.apellido||'').toUpperCase()}</b><span style="color:var(--muted);font-family:var(--font-mono);font-size:10px;">#${typeLabel(r.tipo)}</span></div>
+          <div class="hof-name">${avatarWithTooltip(r, 26)}<div style="overflow:hidden;"><div style="display:flex;align-items:center;gap:6px;"><b>${(r.apellido||'').toUpperCase()}</b><span style="color:var(--muted);font-family:var(--font-mono);font-size:10px;">#${typeLabel(r.tipo)}</span></div>${ligasHtml}</div></div>
           <div class="hof-col">${teamHtml}</div>
           <div class="hof-col">${r.ovr}</div>
           <div class="hof-col">${r.fama}</div>
@@ -3858,14 +3914,17 @@ const POKEDEX_REGION_RANGES = {
   Sinnoh:  [387, 493], Teselia:[494, 649], Kalos:  [650, 721],
   Alola:   [722, 809], Galar:  [810, 905], Paldea: [906, 1025],
 };
+let pokedexHideMissing = false;
 function renderPokedex(){
   const store = loadPokedexStore();
   const totalCaught = Object.keys(store).length;
   const statusEl = document.getElementById('pokedexStatus');
   const gridEl = document.getElementById('pokedexGrid');
+  const navEl = document.getElementById('pokedexNav');
   if(!totalCaught){
     statusEl.textContent = 'Todavía no hay nada acá. Completá una carrera entera (llegá hasta el final) para que tu equipo empiece a quedar registrado.';
     gridEl.innerHTML = '';
+    navEl.innerHTML = '';
     return;
   }
   const shinyCount = Object.values(store).filter(e=>e.shinySeen).length;
@@ -3874,10 +3933,16 @@ function renderPokedex(){
     + (shinyCount ? ` · ${shinyCount} shiny${shinyCount===1?'':'s'} ✨` : '')
     + ' (se acumula entre todas tus carreras completas).';
 
-  gridEl.innerHTML = ALL_REGIONS.map(region=>{
+  // Navegación rápida: un chip por región (salta y despliega) + toggle de siluetas
+  navEl.innerHTML = ALL_REGIONS.map(region=>`<div class="chip" data-jump="${region}">${region}</div>`).join('')
+    + `<div class="chip${pokedexHideMissing?' sel':''}" id="pdToggleMissing">${pokedexHideMissing?'Mostrar todo':'Solo capturados'}</div>`
+    + `<div class="chip" id="pdExpandAll">Desplegar todo</div>`;
+
+  gridEl.innerHTML = ALL_REGIONS.map((region, ri)=>{
     const [lo, hi] = POKEDEX_REGION_RANGES[region];
     const ids = Array.from({length: hi-lo+1}, (_,i)=> lo+i);
     const caughtHere = ids.filter(id=>store[String(id)]).length;
+    const pct = Math.round(caughtHere/ids.length*100);
     const cards = ids.map(id=>{
       const e = store[String(id)];
       if(e){
@@ -3897,9 +3962,42 @@ function renderPokedex(){
         <div class="pd-meta">???</div>
       </div>`;
     }).join('');
-    return `<div class="pokedex-region-header"><span class="pr-name">${region}</span><span class="pr-count">${caughtHere}/${ids.length}</span></div>
-      <div class="pokedex-grid">${cards}</div>`;
+    return `<div class="pokedex-region${ri===0?' open':''}" id="pdRegion-${region}">
+      <div class="pokedex-region-header" data-toggle="${region}">
+        <span class="pr-caret">▶</span>
+        <span class="pr-name">${region}</span>
+        <span class="pr-bar"><span class="pr-bar-fill" style="width:${pct}%;"></span></span>
+        <span class="pr-count">${caughtHere}/${ids.length}</span>
+      </div>
+      <div class="pokedex-region-body">
+        <div class="pokedex-grid${pokedexHideMissing?' hide-missing':''}">${cards}</div>
+      </div>
+    </div>`;
   }).join('');
+
+  document.querySelectorAll('.pokedex-region-header').forEach(h=>{
+    h.addEventListener('click', ()=>{
+      h.closest('.pokedex-region').classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('#pokedexNav [data-jump]').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const region = chip.dataset.jump;
+      const block = document.getElementById(`pdRegion-${region}`);
+      if(!block) return;
+      block.classList.add('open');
+      block.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+  document.getElementById('pdToggleMissing').addEventListener('click', ()=>{
+    pokedexHideMissing = !pokedexHideMissing;
+    renderPokedex();
+  });
+  document.getElementById('pdExpandAll').addEventListener('click', ()=>{
+    const allOpen = [...document.querySelectorAll('.pokedex-region')].every(r=>r.classList.contains('open'));
+    document.querySelectorAll('.pokedex-region').forEach(r=>r.classList.toggle('open', !allOpen));
+    document.getElementById('pdExpandAll').textContent = allOpen ? 'Desplegar todo' : 'Contraer todo';
+  });
 }
 let pokedexScreenOrigin = 'screen-setup';
 function openPokedex(origin){
