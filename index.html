@@ -1287,7 +1287,7 @@ function runTooltipHtml(r){
   const ligasHtml = ligas.map(region=>`<img src="${(TROPHY_ICONS.liga && TROPHY_ICONS.liga[region])||''}" title="Liga ${region}" alt="">`).join('');
   const logrosBits = [];
   if(r.mundial_titulos>0) logrosBits.push(`<img src="${TROPHY_ICONS.mundial}" title="Copa Mundial x${r.mundial_titulos}" alt="">`);
-  if(r.pokebolas_oro>0) logrosBits.push(`<img src="${TROPHY_ICONS.balon}" title="Balón de Oro x${r.pokebolas_oro}" alt="">`);
+  if(r.pokebolas_oro>0) logrosBits.push(`<img src="${TROPHY_ICONS.balon}" title="Pokébola de Oro x${r.pokebolas_oro}" alt="">`);
   return `<div class="hof-tip">
     <div class="ht-title">${(r.apellido||'').toUpperCase()}</div>
     <div class="ht-stats">OVR ${r.ovr} · Fama ${r.fama} · Medallas ${r.medallas} · Batallas ${r.batallas}</div>
@@ -1567,7 +1567,7 @@ function regionSeasonIndex(t){ return t - TRAINING_ARCS; } // 1..9 dentro del re
    - Liga Regional: casi cada temporada (con algo de variedad narrativa mezclada)
    - Master Tournament: temporadas regionales impares (1ª,3ª,5ª,7ª,9ª del recorrido)
    - Copa Mundial: temporadas regionales pares (2ª,4ª,6ª,8ª del recorrido)
-   - Balón de Oro: se evalúa automáticamente al cierre de cada temporada competitiva */
+   - Pokébola de Oro: se evalúa automáticamente al cierre de cada temporada competitiva */
 function isMasterSeason(t){ const r=regionSeasonIndex(t); return r>=1 && r%2===1; }
 function isMundialSeason(t){ const r=regionSeasonIndex(t); return r>=1 && r%2===0; }
 const PEAK_SEASON = REGION_COUNT; // a partir de la última temporada regional, la habilidad empieza a declinar (veteranía)
@@ -2212,7 +2212,7 @@ function renderTimeline(){
       ? `<div class="timeline-mon">${imgTag({id:row.monId, shiny:row.monShiny, name:''})}</div>`
       : `<div class="timeline-mon"></div>`;
     const isTrainingRow = !row.placeholder && row.temporada<=TRAINING_ARCS; // arco de entrenamiento (sin ranking mundial todavía)
-    // Logros de esa temporada (solo los que tienen ícono real: ligas, master, mundial, balón de oro),
+    // Logros de esa temporada (solo los que tienen ícono real: ligas, master, mundial, pokébola de oro),
     // se muestran como badges chiquitos pegados al nombre de la región, al estilo Copero.
     const seasonTrophies = row.placeholder ? [] : (state.titulos||[]).filter(t=>t.icon && t.temporada===row.temporada);
     const trophiesHtml = seasonTrophies.length
@@ -3172,7 +3172,7 @@ function checkBalonDeOro(){
   const myScore = (state.habilidad*0.5 + state.fama*0.5) + rand(-8,8);
   if(myScore > Math.max(...rivals)){
     state.pokebolasOro += 1;
-    state.titulos.push({text:'Balón de Oro al mejor entrenador', temporada:state.temporada, icon:TROPHY_ICONS.balon});
+    state.titulos.push({text:'Pokébola de Oro al mejor entrenador', temporada:state.temporada, icon:TROPHY_ICONS.balon});
     return {won:true};
   }
   return {won:false};
@@ -3578,7 +3578,7 @@ function renderResult(ev, res){
 
   let checkpointHtml = '';
   if(checkpoint){
-    checkpointHtml = `<div class="mini-swap" style="color:${checkpoint.won?'var(--gold)':'var(--muted)'};">${checkpoint.won ? 'Ganaste el Balón de Oro al mejor entrenador' : 'El Balón de Oro quedó en otras manos esta vez'}</div>`;
+    checkpointHtml = `<div class="mini-swap" style="color:${checkpoint.won?'var(--gold)':'var(--muted)'};">${checkpoint.won ? 'Ganaste la Pokébola de Oro al mejor entrenador' : 'La Pokébola de Oro quedó en otras manos esta vez'}</div>`;
   }
 
   let seasonCloseHtml = '';
@@ -3706,7 +3706,7 @@ function showSummary(){
 
   const premiosEl = document.getElementById('sumPremios');
   premiosEl.innerHTML = state.pokebolasOro>0
-    ? `<div style="display:flex;align-items:center;gap:8px;"><img src="${TROPHY_ICONS.balon}" style="width:32px;height:32px;" alt=""><div><div style="font-family:var(--font-display);font-size:22px;">x${state.pokebolasOro}</div><div style="font-size:11px;color:var(--muted);">Balón de Oro</div></div></div>`
+    ? `<div style="display:flex;align-items:center;gap:8px;"><img src="${TROPHY_ICONS.balon}" style="width:32px;height:32px;" alt=""><div><div style="font-family:var(--font-display);font-size:22px;">x${state.pokebolasOro}</div><div style="font-size:11px;color:var(--muted);">Pokébola de Oro</div></div></div>`
     : `<span class="vitrina-empty">Vitrina vacía</span>`;
 
   const stints = [];
