@@ -621,6 +621,7 @@
             <div>MEDALLAS<b id="sumMedallas">0</b></div>
             <div>MEJOR POSICIÓN<b id="sumMejorPos">—</b></div>
           </div>
+          <div id="sumPersonalBest" class="hidden" style="margin-top:10px;font-size:11px;color:var(--muted);font-family:var(--font-mono);"></div>
         </div>
         <div class="sum-box">
           <div class="cap">Copa Mundial Pokémon</div>
@@ -1287,6 +1288,85 @@ async function fetchLeaderboard(typeKey){
   if(!res.ok) throw new Error('fetch failed');
   return res.json();
 }
+async function fetchMyRuns(){
+  // Todas las carreras que subiste con esta cuenta (no depende del dispositivo)
+  if(!SUPABASE_ENABLED || !currentUser) return null;
+  const url = `${SUPABASE_URL}/rest/v1/leaderboard?select=*&user_id=eq.${currentUser.id}&order=ovr.desc&limit=50`;
+  const res = await fetch(url, {
+    headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  if(!res.ok) throw new Error('fetch failed');
+  return res.json();
+}
+async function fetchMyBestOvr(){
+  if(!SUPABASE_ENABLED || !currentUser) return null;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/leaderboard?select=ovr&user_id=eq.${currentUser.id}&order=ovr.desc&limit=1`, {
+      headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    if(!res.ok) return null;
+    const rows = await res.json();
+    return (rows && rows.length) ? rows[0].ovr : null;
+  } catch(e){ return null; }
+}
+
+/* ================= POKÉDEX VINCULADA A LA CUENTA (Supabase) =================
+   La Pokédex sigue viviendo en localStorage (funciona sin login y sin conexión).
+   Si hay sesión iniciada, además se sincroniza contra la tabla user_pokedex:
+   al loguearte, se trae lo que había en la nube, se combina con lo local
+   (sin perder nada de ningún lado) y se guarda esa unión en ambos lugares.
+   Después de cada carrera completa, si hay sesión, se vuelve a subir. */
+async function fetchRemotePokedex(){
+  if(!SUPABASE_ENABLED || !currentUser) return null;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_pokedex?user_id=eq.${currentUser.id}&select=data`, {
+      headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${currentSession.access_token}` },
+    });
+    if(!res.ok) return null;
+    const rows = await res.json();
+    return (rows && rows.length) ? rows[0].data : null;
+  } catch(e){ return null; }
+}
+async function pushRemotePokedex(store){
+  if(!SUPABASE_ENABLED || !currentUser) return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/user_pokedex`, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${currentSession.access_token}`,
+        'Prefer':'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ user_id: currentUser.id, data: store, updated_at: new Date().toISOString() }),
+    });
+  } catch(e){ /* si falla la sync no rompemos el juego, sigue funcionando local */ }
+}
+function mergePokedexStores(local, remote){
+  const merged = {...local};
+  Object.keys(remote||{}).forEach(key=>{
+    const r = remote[key], l = merged[key];
+    if(!l){ merged[key] = r; return; }
+    merged[key] = {
+      ...l,
+      vecesCapturado: Math.max(l.vecesCapturado||1, r.vecesCapturado||1),
+      shinySeen: !!(l.shinySeen || r.shinySeen),
+      firstTemporada: Math.min(l.firstTemporada??999, r.firstTemporada??999),
+    };
+  });
+  return merged;
+}
+let pokedexSynced = false;
+async function syncPokedexOnLogin(){
+  if(!currentUser || pokedexSynced) return;
+  pokedexSynced = true;
+  const remote = await fetchRemotePokedex();
+  const local = loadPokedexStore();
+  const merged = mergePokedexStores(local, remote || {});
+  savePokedexStore(merged);
+  pushRemotePokedex(merged);
+  if(!document.getElementById('screen-pokedex').classList.contains('hidden')) renderPokedex();
+}
 
 /* ================= CUENTA (Supabase Auth: mail+contraseña y Google) ================= */
 let currentUser = null;
@@ -1315,11 +1395,13 @@ if(sbClient){
     currentSession = data.session;
     currentUser = data.session ? data.session.user : null;
     updateAccountUI();
+    if(currentUser) syncPokedexOnLogin(); else pokedexSynced = false;
   });
   sbClient.auth.onAuthStateChange((_event, session)=>{
     currentSession = session;
     currentUser = session ? session.user : null;
     updateAccountUI();
+    if(currentUser) syncPokedexOnLogin(); else pokedexSynced = false;
   });
 }
 
@@ -3429,6 +3511,21 @@ function showSummary(){
   const posiciones = state.timeline.filter(r=>!r.placeholder && r.posicion).map(r=>r.posicion);
   document.getElementById('sumMejorPos').textContent = posiciones.length ? `${Math.min(...posiciones)}º` : '—';
 
+  if(SUPABASE_ENABLED && currentUser){
+    fetchMyBestOvr().then(prevBest=>{
+      const el = document.getElementById('sumPersonalBest');
+      if(!el) return;
+      el.classList.remove('hidden');
+      if(prevBest === null){
+        el.textContent = 'Primera carrera que subís con esta cuenta.';
+      } else if(attrs.OVR > prevBest){
+        el.textContent = `¡Nuevo récord personal! Superaste tu mejor OVR anterior (${prevBest}).`;
+      } else {
+        el.textContent = `Tu mejor OVR con esta cuenta: ${prevBest}.`;
+      }
+    });
+  }
+
   submitToLeaderboard({
     apellido: state.apellido,
     avatar_id: state.avatarId,
@@ -3533,7 +3630,7 @@ document.getElementById('btnDownload').addEventListener('click', ()=>{
 /* ================= SALÓN DE LA FAMA ================= */
 let hofScreenOrigin = 'screen-setup';
 const hofTypeFilter = document.getElementById('hofTypeFilter');
-const HOF_FILTERS = [{key:null, label:'Global'}, ...TYPES];
+const HOF_FILTERS = [{key:null, label:'Global'}, {key:'mine', label:'Mis carreras'}, ...TYPES];
 HOF_FILTERS.forEach(f=>{
   const chip = document.createElement('div');
   chip.className = 'chip' + (f.key===null ? ' sel' : '');
@@ -3555,11 +3652,15 @@ async function loadHof(typeKey){
     statusEl.textContent = 'El Salón de la Fama online todavía no está configurado (falta conectar Supabase).';
     return;
   }
+  if(typeKey === 'mine' && !currentUser){
+    statusEl.textContent = 'Iniciá sesión para ver las carreras que subiste con tu cuenta.';
+    return;
+  }
   statusEl.textContent = 'Cargando...';
   try{
-    const rows = await fetchLeaderboard(typeKey);
+    const rows = typeKey === 'mine' ? await fetchMyRuns() : await fetchLeaderboard(typeKey);
     if(!rows || !rows.length){
-      statusEl.textContent = 'Todavía no hay carreras registradas en esta categoría.';
+      statusEl.textContent = typeKey === 'mine' ? 'Todavía no subiste ninguna carrera con esta cuenta.' : 'Todavía no hay carreras registradas en esta categoría.';
       return;
     }
     statusEl.textContent = '';
@@ -3638,6 +3739,7 @@ function updatePokedexFromRun(){
     }
   });
   savePokedexStore(store);
+  if(currentUser) pushRemotePokedex(store);
 }
 // Rangos de dex nacional por región (mismo criterio que usa la PokeAPI/juegos oficiales).
 // Se usan solo para AGRUPAR y mostrar huecos con silueta — no dependen de la PokeAPI en tiempo real.
