@@ -742,7 +742,12 @@
 .khs-rank{width:20px;flex-shrink:0;font-family:var(--font-mono);font-weight:700;color:var(--gold);text-align:center;}
 .khs-info{flex:1;min-width:0;overflow:hidden;}
 .khs-info b{font-size:12.5px;}
-.khs-sub{font-size:10.5px;color:var(--muted);}
+.khs-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:8px;white-space:nowrap;}
+.khs-badge-champ{background:rgba(240,180,41,.22);color:var(--gold);}
+.khs-badge-elite{background:rgba(140,120,255,.2);color:#a89bff;}
+.khs-badge-gym{background:var(--panel-2);color:var(--muted);}
+.khs-team{display:flex;gap:2px;margin-top:4px;}
+.khs-team img{width:24px;height:24px;object-fit:contain;border-radius:4px;background:var(--panel-2);}
 .khs-ovr{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text);flex-shrink:0;}
 
 /* ===== Mapa de jefes Kanto (8 gimnasios + Alto Mando + Campeón) ===== */
@@ -2176,6 +2181,18 @@ async function fetchKantoLeaderboard(){
   if(!res.ok) throw new Error('fetch failed');
   return res.json();
 }
+// Igual que fetchRecentRuns pero para kanto_leaderboard — se usa para mezclar
+// las corridas de Kanto Rush dentro de "Partidas recientes" en la pantalla inicial.
+async function fetchKantoRecentRuns(){
+  if(!SUPABASE_ENABLED) return null;
+  const url = `${SUPABASE_URL}/rest/v1/kanto_leaderboard?select=*&order=created_at.desc&limit=20`;
+  const res = await fetch(url, {
+    headers:{ 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    cache: 'no-store',
+  });
+  if(!res.ok) throw new Error('fetch failed');
+  return res.json();
+}
 // Arma y sube el resultado de la corrida de Kanto Rush. Se llama tanto al llegar
 // a Campeón (renderKantoEnding) como al perder (renderKantoGameOver) — subimos
 // SIEMPRE que la partida termina, no solo cuando se gana, igual que en Carrera
@@ -2701,12 +2718,22 @@ async function loadSetupRecent(){
   }
   el.innerHTML = `<div class="decision-desc" style="margin:0;">Cargando...</div>`;
   try{
-    const rows = await fetchRecentRuns();
-    if(!rows || !rows.length){
+    // Se piden las dos tablas en paralelo (Carrera Libre y Kanto Rush) y se
+    // mezclan por fecha, así "Partidas recientes" muestra lo último jugado
+    // sin importar el modo.
+    const [freeRows, kantoRows] = await Promise.all([
+      fetchRecentRuns().catch(()=>[]),
+      fetchKantoRecentRuns().catch(()=>[]),
+    ]);
+    const tagged = [
+      ...(freeRows||[]).map(r=>({...r, _mode:'free'})),
+      ...(kantoRows||[]).map(r=>({...r, _mode:'kanto'})),
+    ].sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+    if(!tagged.length){
       el.innerHTML = `<div class="decision-desc" style="margin:0;">Todavía no hay carreras subidas.</div>`;
       return;
     }
-    el.innerHTML = rows.slice(0,5).map(r=>{
+    el.innerHTML = tagged.slice(0,5).map(r=>{
       const av = avatarById(r.avatar_id);
       let team = [];
       try{ team = JSON.parse(r.roster_json||'[]'); } catch(e){ team = []; }
@@ -2714,11 +2741,15 @@ async function loadSetupRecent(){
         const src = pmdSprite(p.id, p.shiny), fb = fallbackSprite(p.id, p.shiny);
         return `<img class="${p.shiny?'shiny-ring':''}" src="${src}" data-fb="${fb}" ${IMG_ERR} alt="" style="width:20px;height:20px;">`;
       }).join('')}</div>`;
+      const modeTag = r._mode === 'kanto'
+        ? `<span class="khs-badge ${r.campeon ? 'khs-badge-champ' : (r.alto_mando ? 'khs-badge-elite' : 'khs-badge-gym')}" style="margin-top:2px;">${r.campeon ? '🏆 Kanto Campeón' : (r.alto_mando ? '⭐ Kanto Alto Mando' : `Kanto ${r.medallas||0}/8`)}</span>`
+        : '';
       return `<div class="hof-vert-item">
         <div class="hof-vert-rank" style="font-size:11px;">${timeAgo(r.created_at)}</div>
         ${avatarWithTooltip(r, 28)}
         <div class="hof-vert-name">${(r.apellido||'').toUpperCase()}</div>
         ${teamHtml}
+        ${modeTag}
         <div class="hof-vert-ovr">${r.ovr} OVR</div>
       </div>`;
     }).join('');
@@ -7925,12 +7956,24 @@ document.getElementById('btnKantoHighscore').addEventListener('click', async ()=
     }
     statusEl.textContent = '';
     listEl.innerHTML = rows.map((r,i)=>{
-      const estado = r.campeon ? '🏆 Campeón' : (r.alto_mando ? 'Alto Mando superado' : `${r.medallas||0}/8 medallas`);
+      let team = [];
+      try{ team = JSON.parse(r.roster_json||'[]'); } catch(e){ team = []; }
+      const teamHtml = team.length
+        ? `<div class="khs-team">${team.slice(0,6).map(p=>{
+            const src = pmdSprite(p.id, p.shiny), fb = fallbackSprite(p.id, p.shiny);
+            return `<img class="${p.shiny?'shiny-ring':''}" src="${src}" data-fb="${fb}" ${IMG_ERR} alt="">`;
+          }).join('')}</div>`
+        : '';
+      const estadoClass = r.campeon ? 'khs-badge-champ' : (r.alto_mando ? 'khs-badge-elite' : 'khs-badge-gym');
+      const estadoTxt = r.campeon ? '🏆 Campeón' : (r.alto_mando ? '⭐ Alto Mando superado' : `${r.medallas||0}/8 medallas`);
       return `<div class="khs-row">
         <div class="khs-rank">${i+1}</div>
         <div class="khs-info">
-          <b>${(r.apellido||'').toUpperCase()}</b>
-          <div class="khs-sub">${estado}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <b>${(r.apellido||'').toUpperCase()}</b>
+            <span class="khs-badge ${estadoClass}">${estadoTxt}</span>
+          </div>
+          ${teamHtml}
         </div>
         <div class="khs-ovr">OVR ${r.ovr}</div>
       </div>`;
